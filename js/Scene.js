@@ -184,7 +184,6 @@ Scene.prototype.deleteRow = function (row, start, end) {
 	for (var i = start; i <= end; i++) {
 		this.deletePiece(i, row)
 	}
-	this.updateGrid()
 }
 
 Scene.prototype.deleteCol = function (col, start, end) {
@@ -192,7 +191,6 @@ Scene.prototype.deleteCol = function (col, start, end) {
 	for (var i = start; i <= end; i++) {
 		this.deletePiece(col, i)
 	}
-	this.updateGrid()
 }
 
 Scene.prototype.checkCol = function (col) {
@@ -304,18 +302,34 @@ Scene.prototype.findMatch = function (newX, newY) {
 	}
 };
 
+// Scene.prototype.updateGrid = function() {
+// 	for (var i = 1; i < this.gridSize; i++) {
+// 		for (var j = 0; j < this.gridSize; j++) {
+// 			// make sure the squre we're checking isn't empty
+// 			if (this.pieces[j][i] != null) {
+// 				var loc = i
+// 				while (loc - 1 >= 0 && this.pieces[j][loc-1] == null) {
+// 					this.pieces[j][loc-1] = this.pieces[j][i]
+// 					this.pieces[j][loc-1].position.set((j - 5)*1.8+1.8, (loc - 1 - 5)*1.8+1)
+// 					this.pieces[j][i].scale = 1.3
+// 					loc -= 1
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
 Scene.prototype.updateGrid = function() {
-	for (var i = 1; i < this.gridSize; i++) {
-		for (var j = 0; j < this.gridSize; j++) {
-			// make sure the squre we're checking isn't empty
-			if (this.pieces[j][i] != null) {
-				var loc = i
-				while (loc - 1 >= 0 && this.pieces[j][loc-1] == null) {
-					this.pieces[j][loc-1] = this.pieces[j][i]
-					this.pieces[j][loc-1].position.set((j - 5)*1.8+1.8, (loc - 1 - 5)*1.8+1)
-					this.pieces[j][i].scale = 1.3
-					loc -= 1
-				}
+	var filler = new GameObject(this.dogMeshes[0]);
+	filler.scale = .0001
+	for (var i = 0; i < this.gridSize; i++) {
+		for (var j = 1; j < this.gridSize; j++) {
+			var loc = j
+			while (loc >= 1 && this.pieces[i][loc] != null 
+				&& (this.pieces[i][loc - 1] == null || this.pieces[i][loc - 1].scale < .005)) {
+					this.pieces[i][loc-1] = this.pieces[i][loc]
+					this.pieces[i][loc-1].position = (i - 5)*1.8+1.8, (loc - 1 - 5)*1.8+1
+					this.pieces[i][loc] = filler
 			}
 		}
 	}
@@ -356,11 +370,8 @@ Scene.prototype.mouseUp = function (mouseX, mouseY) {
 
 			this.checkRow(oldY)
 			this.checkRow(this.selectedPiece.gridY)
-			this.updateGrid()
 			this.checkCol(oldX)
 			this.checkCol(this.selectedPiece.gridX)
-
-			this.updateGrid()
 			} else {
 				this.selectedPiece.position.set((this.selectedPiece.gridX - 5)*1.8+1.8, (this.selectedPiece.gridY - 5)*1.8+1)
 			}
@@ -440,6 +451,18 @@ Scene.prototype.update = function(gl, keysPressed) {
 	gl.clearDepth(1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+	if (keysPressed.Q) {
+		this.camera.position.x += Math.sin(timeAtThisFrame)
+		for (var i = 0; i < this.gridSize; i++) {
+			for (var j = 0; j < this.gridSize; j++) {
+				if ((Math.random() * 1000) < 1) {
+					this.toDelete.push(this.pieces[i][j])
+				}
+			}
+		}
+	} else {
+		this.camera.position.x = 0
+	}
 
 	for (let i = 0; i < this.gameObjects.length; i++) {
 		this.gameObjects[i].control(t, dt, keysPressed, this.gameObjects);
@@ -464,13 +487,16 @@ Scene.prototype.update = function(gl, keysPressed) {
 	}
 
 	for(let i = this.toDelete.length - 1; i >= 0; i--) {
-		this.toDelete[i].scale -= 0.005
-		if (this.toDelete[i].scale < .0005) {
-			console.log("should remove now")
+		this.toDelete[i].scale -= 0.01
+		var shouldUpdate = false
+		if (this.toDelete[i].scale < .005) {
 			this.toDelete.splice(i, 1)
+			shouldUpdate = true
+		}
+		if (shouldUpdate) {
+			// this.updateGrid()
 		}
  	}
-
 };
 
 
